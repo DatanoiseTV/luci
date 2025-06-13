@@ -1,0 +1,515 @@
+<%#
+ Copyright 2025 OpenWrt.org
+ Licensed to the public under the Apache License 2.0.
+-%>
+<%
+	import { getuid, getspnam } from 'luci.core';
+	
+	const request = http.getenv();
+	const boardinfo = ctx.dispatcher.getBoardinfo();
+	const hostname = L.resource.hostname ?? 'LuCI';
+	const title = ctx.viewtitle ?? `${hostname} - Authentication Required`;
+	
+	http.prepare_content('text/html; charset=UTF-8');
+-%>
+<!DOCTYPE html>
+<html lang="{{ dispatcher.lang }}" data-darkmode="<%= (http.getcookie('darkmode') ?? 'false') == 'true' %>">
+<head>
+	<meta charset="utf-8">
+	<title>{{ title }}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#2563eb">
+	<link rel="icon" href="{{ resource }}/luci-static/modern/logo_48.png" type="image/png">
+	<style>
+		:root {
+			/* Modern color palette */
+			--primary: #2563eb;
+			--primary-hover: #1d4ed8;
+			--primary-light: #dbeafe;
+			--secondary: #7c3aed;
+			--success: #10b981;
+			--danger: #ef4444;
+			
+			/* Neutral colors */
+			--gray-50: #f9fafb;
+			--gray-100: #f3f4f6;
+			--gray-200: #e5e7eb;
+			--gray-300: #d1d5db;
+			--gray-400: #9ca3af;
+			--gray-500: #6b7280;
+			--gray-600: #4b5563;
+			--gray-700: #374151;
+			--gray-800: #1f2937;
+			--gray-900: #111827;
+			
+			/* Background layers */
+			--bg-primary: #ffffff;
+			--bg-secondary: #f9fafb;
+			--bg-card: #ffffff;
+			--bg-hover: #f9fafb;
+			
+			/* Text colors */
+			--text-primary: #111827;
+			--text-secondary: #4b5563;
+			--text-tertiary: #6b7280;
+			--text-muted: #9ca3af;
+			
+			/* Border colors */
+			--border-primary: #e5e7eb;
+			--border-secondary: #d1d5db;
+			--border-focus: var(--primary);
+			
+			/* Effects */
+			--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+			--shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+			--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+			--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+			--shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+			
+			/* Animations */
+			--transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+			--transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+			--transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+			
+			--border-radius: 8px;
+			--border-radius-lg: 12px;
+		}
+
+		/* Dark mode variables */
+		[data-darkmode="true"] {
+			--bg-primary: #0f172a;
+			--bg-secondary: #1e293b;
+			--bg-card: #1e293b;
+			--bg-hover: #334155;
+			
+			--text-primary: #f1f5f9;
+			--text-secondary: #cbd5e1;
+			--text-tertiary: #94a3b8;
+			--text-muted: #64748b;
+			
+			--border-primary: #334155;
+			--border-secondary: #475569;
+			
+			--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+			--shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+			--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+			--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+			--shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		html {
+			font-size: 16px;
+			-webkit-font-smoothing: antialiased;
+			-moz-osx-font-smoothing: grayscale;
+		}
+
+		body {
+			margin: 0;
+			padding: 0;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+			font-size: 0.875rem;
+			line-height: 1.5;
+			color: var(--text-primary);
+			background: var(--bg-primary);
+			background-image: 
+				radial-gradient(circle at 25% 25%, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
+				radial-gradient(circle at 75% 75%, rgba(124, 58, 237, 0.1) 0%, transparent 50%),
+				radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: all var(--transition-slow);
+		}
+
+		.login-container {
+			width: 100%;
+			max-width: 400px;
+			padding: 2rem;
+			animation: slideUp 0.6s ease-out;
+		}
+
+		@keyframes slideUp {
+			from {
+				transform: translateY(30px);
+				opacity: 0;
+			}
+			to {
+				transform: translateY(0);
+				opacity: 1;
+			}
+		}
+
+		.login-card {
+			background-color: var(--bg-card);
+			border: 1px solid var(--border-primary);
+			border-radius: var(--border-radius-lg);
+			padding: 2.5rem;
+			box-shadow: var(--shadow-xl);
+			backdrop-filter: blur(10px);
+			position: relative;
+			overflow: hidden;
+		}
+
+		.login-card::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			height: 4px;
+			background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+		}
+
+		.login-header {
+			text-align: center;
+			margin-bottom: 2rem;
+		}
+
+		.login-logo {
+			width: 64px;
+			height: 64px;
+			margin: 0 auto 1rem;
+			background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 2rem;
+			color: white;
+			animation: pulse 2s infinite;
+		}
+
+		@keyframes pulse {
+			0%, 100% { transform: scale(1); }
+			50% { transform: scale(1.05); }
+		}
+
+		.login-title {
+			font-size: 1.5rem;
+			font-weight: 700;
+			color: var(--text-primary);
+			margin: 0 0 0.5rem;
+		}
+
+		.login-subtitle {
+			color: var(--text-secondary);
+			font-size: 0.875rem;
+		}
+
+		.system-info {
+			background-color: var(--bg-secondary);
+			border: 1px solid var(--border-primary);
+			border-radius: var(--border-radius);
+			padding: 1rem;
+			margin-bottom: 1.5rem;
+			font-size: 0.75rem;
+			text-align: center;
+		}
+
+		.system-info-title {
+			font-weight: 600;
+			color: var(--text-primary);
+			margin-bottom: 0.5rem;
+		}
+
+		.system-info-details {
+			color: var(--text-tertiary);
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+
+		.form-group {
+			margin-bottom: 1.5rem;
+		}
+
+		.form-label {
+			display: block;
+			font-weight: 500;
+			color: var(--text-primary);
+			margin-bottom: 0.5rem;
+		}
+
+		.form-control {
+			width: 100%;
+			padding: 0.75rem 1rem;
+			font-size: 0.875rem;
+			color: var(--text-primary);
+			background-color: var(--bg-primary);
+			border: 2px solid var(--border-primary);
+			border-radius: var(--border-radius);
+			transition: all var(--transition-base);
+			position: relative;
+		}
+
+		.form-control:focus {
+			outline: none;
+			border-color: var(--border-focus);
+			box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+			transform: translateY(-1px);
+		}
+
+		.form-control:hover {
+			border-color: var(--border-secondary);
+		}
+
+		.input-group {
+			position: relative;
+		}
+
+		.input-icon {
+			position: absolute;
+			left: 1rem;
+			top: 50%;
+			transform: translateY(-50%);
+			color: var(--text-muted);
+			font-size: 1rem;
+		}
+
+		.form-control.with-icon {
+			padding-left: 2.75rem;
+		}
+
+		.btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0.75rem 1.5rem;
+			font-size: 0.875rem;
+			font-weight: 600;
+			border: none;
+			border-radius: var(--border-radius);
+			cursor: pointer;
+			transition: all var(--transition-base);
+			position: relative;
+			overflow: hidden;
+			text-decoration: none;
+		}
+
+		.btn-primary {
+			color: white;
+			background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+			box-shadow: var(--shadow-sm);
+		}
+
+		.btn-primary:hover {
+			transform: translateY(-2px);
+			box-shadow: var(--shadow-lg);
+		}
+
+		.btn-primary:active {
+			transform: translateY(0);
+		}
+
+		.btn-block {
+			width: 100%;
+		}
+
+		.alert {
+			padding: 1rem;
+			border-radius: var(--border-radius);
+			margin-bottom: 1rem;
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			animation: slideIn var(--transition-base) ease-out;
+		}
+
+		@keyframes slideIn {
+			from {
+				transform: translateY(-10px);
+				opacity: 0;
+			}
+			to {
+				transform: translateY(0);
+				opacity: 1;
+			}
+		}
+
+		.alert-danger {
+			background-color: rgba(239, 68, 68, 0.1);
+			color: var(--danger);
+			border: 1px solid rgba(239, 68, 68, 0.2);
+		}
+
+		.dark-mode-toggle {
+			position: absolute;
+			top: 1rem;
+			right: 1rem;
+			background: none;
+			border: none;
+			font-size: 1.5rem;
+			cursor: pointer;
+			padding: 0.5rem;
+			border-radius: 50%;
+			transition: all var(--transition-fast);
+		}
+
+		.dark-mode-toggle:hover {
+			background-color: var(--bg-hover);
+		}
+
+		.footer-info {
+			text-align: center;
+			margin-top: 2rem;
+			padding-top: 1.5rem;
+			border-top: 1px solid var(--border-primary);
+			color: var(--text-muted);
+			font-size: 0.75rem;
+		}
+
+		.footer-links {
+			display: flex;
+			justify-content: center;
+			gap: 1rem;
+			margin-top: 0.5rem;
+		}
+
+		.footer-links a {
+			color: var(--text-tertiary);
+			text-decoration: none;
+			transition: color var(--transition-fast);
+		}
+
+		.footer-links a:hover {
+			color: var(--primary);
+		}
+
+		@media (max-width: 480px) {
+			.login-container {
+				padding: 1rem;
+			}
+			
+			.login-card {
+				padding: 1.5rem;
+			}
+		}
+	</style>
+</head>
+<body>
+	<div class="login-container">
+		<button class="dark-mode-toggle" id="darkModeToggle" title="{{ _('Toggle dark mode') }}">
+			🌙
+		</button>
+		
+		<div class="login-card">
+			<div class="login-header">
+				<div class="login-logo">🚀</div>
+				<h1 class="login-title">{{ hostname }}</h1>
+				<p class="login-subtitle">{{ _('Authentication Required') }}</p>
+			</div>
+			
+			<div class="system-info">
+				<div class="system-info-title">{{ _('System Information') }}</div>
+				<div class="system-info-details">
+					<% if (boardinfo.model) { %>
+						<span>{{ boardinfo.model }}</span>
+					<% } %>
+					<% if (boardinfo.system) { %>
+						<span>{{ boardinfo.system }}</span>
+					<% } %>
+				</div>
+			</div>
+			
+			<% if (ctx.authfail) { %>
+				<div class="alert alert-danger">
+					<span>⚠️</span>
+					<span>{{ _('Invalid username and/or password! Please try again.') }}</span>
+				</div>
+			<% } %>
+			
+			<form method="post" action="{{ dispatcher.build_url(ctx.urltoken.stok, 'admin', 'login') }}">
+				<input type="hidden" name="luci_username" value="root">
+				
+				<div class="form-group">
+					<label for="luci_password" class="form-label">{{ _('Password') }}</label>
+					<div class="input-group">
+						<span class="input-icon">🔒</span>
+						<input 
+							type="password" 
+							id="luci_password" 
+							name="luci_password"
+							class="form-control with-icon"
+							placeholder="{{ _('Enter your password') }}"
+							autocomplete="current-password"
+							required
+							autofocus
+						>
+					</div>
+				</div>
+				
+				<button type="submit" class="btn btn-primary btn-block">
+					{{ _('Login') }}
+				</button>
+			</form>
+			
+			<div class="footer-info">
+				<p>&copy; {{ new Date().getFullYear() }} OpenWrt Project</p>
+				<div class="footer-links">
+					<a href="https://openwrt.org" target="_blank">OpenWrt</a>
+					<a href="https://github.com/openwrt/luci" target="_blank">LuCI</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			// Dark mode toggle
+			const darkModeToggle = document.getElementById('darkModeToggle');
+			const html = document.documentElement;
+			
+			function updateDarkModeIcon() {
+				const isDark = html.getAttribute('data-darkmode') === 'true';
+				darkModeToggle.textContent = isDark ? '☀️' : '🌙';
+			}
+			
+			darkModeToggle.addEventListener('click', function() {
+				const currentMode = html.getAttribute('data-darkmode') === 'true';
+				const newMode = !currentMode;
+				
+				html.setAttribute('data-darkmode', newMode.toString());
+				document.cookie = `darkmode=${newMode}; path=/; max-age=31536000`;
+				
+				updateDarkModeIcon();
+			});
+			
+			updateDarkModeIcon();
+			
+			// Auto focus password field
+			const passwordField = document.getElementById('luci_password');
+			if (passwordField) {
+				passwordField.focus();
+			}
+			
+			// Form submission animation
+			const form = document.querySelector('form');
+			const submitBtn = form.querySelector('button[type="submit"]');
+			
+			form.addEventListener('submit', function() {
+				submitBtn.innerHTML = '⏳ {{ _("Logging in...") }}';
+				submitBtn.disabled = true;
+			});
+			
+			// Floating label effect
+			const inputs = document.querySelectorAll('.form-control');
+			inputs.forEach(input => {
+				input.addEventListener('focus', function() {
+					this.parentElement.classList.add('focused');
+				});
+				
+				input.addEventListener('blur', function() {
+					if (!this.value) {
+						this.parentElement.classList.remove('focused');
+					}
+				});
+			});
+		});
+	</script>
+</body>
+</html>

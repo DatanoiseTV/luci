@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Copyright 2025 OpenWrt.org
+# Licensed to the public under the Apache License 2.0.
+#
+
+uci -q batch <<-EOF >/dev/null
+	delete ucitrack.@luci[-1]
+	add ucitrack luci
+	set ucitrack.@luci[-1].init=luci_statistics
+	commit ucitrack
+EOF
+
+# Register the Modern theme
+uci -q batch <<-EOF
+	set luci.themes.Modern='/luci-static/modern'
+	commit luci
+EOF
+
+# Set as default theme if no theme is currently set
+CURRENT_THEME=$(uci -q get luci.main.mediaurlbase)
+if [ -z "$CURRENT_THEME" ] || [ "$CURRENT_THEME" = "/luci-static/bootstrap" ]; then
+	uci -q batch <<-EOF
+		set luci.main.mediaurlbase='/luci-static/modern'
+		commit luci
+	EOF
+fi
+
+exit 0

@@ -1,0 +1,138 @@
+<%#
+ Copyright 2025 OpenWrt.org
+ Licensed to the public under the Apache License 2.0.
+-%>
+<%
+	import { getuid, getspnam } from 'luci.core';
+	
+	const request = http.getenv();
+	const node = dispatcher.context.dispatched;
+	const path = dispatcher.context.path ?? [];
+	const auth = dispatcher.context.authsession;
+
+	http.prepare_content('text/html; charset=UTF-8');
+-%>
+<!DOCTYPE html>
+<html lang="{{ dispatcher.lang }}" data-darkmode="<%= (http.getcookie('darkmode') ?? 'false') == 'true' %>">
+<head>
+	<meta charset="utf-8">
+	<title>{{ striptags(node?.cors ? `${ node.title } - ${L.resource.hostname}` : (L.resource.hostname ?? 'LuCI')) }}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#2563eb">
+	<link rel="icon" href="{{ resource }}/luci-static/modern/logo_48.png" type="image/png">
+	<link rel="stylesheet" href="{{ resource }}/luci-static/modern/cascade.css">
+	<link rel="stylesheet" media="only screen and (max-width: 854px)" href="{{ resource }}/luci-static/modern/mobile.css">
+	<script src="{{ resource }}/luci.js"></script>
+	<script>
+		L = new LuCI({{ dispatcher.env_json }});
+	</script>
+</head>
+<body>
+	<header>
+		<div class="header-container">
+			<div class="logo-container">
+				<a href="{{ dispatcher.build_url() }}">
+					<img src="{{ resource }}/luci-static/modern/logo.svg" alt="Logo" class="logo">
+				</a>
+				<a href="{{ dispatcher.build_url() }}" class="site-title">
+					{{ L.resource.hostname ?? 'LuCI' }}
+				</a>
+			</div>
+			
+			<nav class="navigation">
+				<div id="menubar" class="nav-menu"></div>
+				
+				<div class="user-menu">
+					<% if (auth) { %>
+						<div class="dropdown">
+							<button class="btn btn-secondary dropdown-toggle">
+								<span class="user-icon">👤</span>
+								<span class="user-name">{{ auth.username }}</span>
+							</button>
+							<div class="dropdown-menu">
+								<a href="{{ dispatcher.build_url('admin/system/admin') }}" class="dropdown-item">
+									{{ _('Administration') }}
+								</a>
+								<div class="dropdown-divider"></div>
+								<a href="{{ dispatcher.build_url('admin/logout') }}" class="dropdown-item">
+									{{ _('Logout') }}
+								</a>
+							</div>
+						</div>
+					<% } %>
+					
+					<button id="darkmode-toggle" class="btn btn-secondary" title="{{ _('Toggle dark mode') }}">
+						<span class="darkmode-icon">🌙</span>
+					</button>
+				</div>
+				
+				<button class="mobile-menu-toggle" id="mobile-menu-toggle">
+					<span class="hamburger"></span>
+				</button>
+			</nav>
+		</div>
+	</header>
+	
+	<div class="main-container">
+		<aside class="sidebar" id="sidebar">
+			<div class="sidebar-content">
+				<div id="mainmenu" class="menu-section"></div>
+			</div>
+		</aside>
+		
+		<main class="content">
+			<% if (!getuid(0)) { %>
+				<div class="alert alert-danger">
+					<span class="alert-icon">⚠️</span>
+					<div>
+						<strong>{{ _('No password set!') }}</strong>
+						<p class="mb-0">{{ _('There is no password set on this router. Please configure a root password to protect the web interface.') }}</p>
+					</div>
+				</div>
+			<% } else if (getspnam('root')?.pwdp === '!') { %>
+				<div class="alert alert-warning">
+					<span class="alert-icon">⚠️</span>
+					<div>
+						<strong>{{ _('SSH Disabled') }}</strong>
+						<p class="mb-0">{{ _('SSH access is disabled. Enable a root password to allow SSH login.') }}</p>
+					</div>
+				</div>
+			<% } %>
+			
+			<% if (boardinfo.rootfs_type === 'initramfs') { %>
+				<div class="alert alert-warning">
+					<span class="alert-icon">⚠️</span>
+					<div>
+						<strong>{{ _('Temporary Installation') }}</strong>
+						<p class="mb-0">{{ _('Initiated from %h').format(boardinfo.kernel.split(' ')[2]) }}</p>
+					</div>
+				</div>
+			<% } %>
+			
+			<div class="content-header">
+				<% if (node?.title) { %>
+					<h1 class="page-title">{{ _(node.title) }}</h1>
+				<% } %>
+				
+				<% if (path.length > 0) { %>
+					<nav class="breadcrumb">
+						<a href="{{ dispatcher.build_url() }}">{{ _('Home') }}</a>
+						<% for (let i = 0; i < path.length; i++) {
+							const name = path[i];
+							const url = dispatcher.build_url(...path.slice(0, i + 1));
+						%>
+							<span class="breadcrumb-separator">/</span>
+							<% if (i === path.length - 1) { %>
+								<span>{{ _(name) }}</span>
+							<% } else { %>
+								<a href="{{ url }}">{{ _(name) }}</a>
+							<% } %>
+						<% } %>
+					</nav>
+				<% } %>
+			</div>
+			
+			<div id="maincontent">
+				<% if (node?.css) { %>
+					<style>{{ node.css }}</style>
+				<% } %>

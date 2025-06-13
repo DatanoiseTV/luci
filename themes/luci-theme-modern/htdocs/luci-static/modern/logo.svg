@@ -1,0 +1,41 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main circle background -->
+  <circle cx="32" cy="32" r="30" fill="url(#logoGradient)" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+  
+  <!-- Router/Network icon -->
+  <!-- Central hub -->
+  <circle cx="32" cy="32" r="6" fill="white" opacity="0.9"/>
+  
+  <!-- Connection nodes -->
+  <circle cx="16" cy="16" r="3" fill="url(#accentGradient)"/>
+  <circle cx="48" cy="16" r="3" fill="url(#accentGradient)"/>
+  <circle cx="16" cy="48" r="3" fill="url(#accentGradient)"/>
+  <circle cx="48" cy="48" r="3" fill="url(#accentGradient)"/>
+  
+  <!-- Connection lines -->
+  <line x1="19" y1="19" x2="26" y2="26" stroke="white" stroke-width="2" opacity="0.8"/>
+  <line x1="45" y1="19" x2="38" y2="26" stroke="white" stroke-width="2" opacity="0.8"/>
+  <line x1="19" y1="45" x2="26" y2="38" stroke="white" stroke-width="2" opacity="0.8"/>
+  <line x1="45" y1="45" x2="38" y2="38" stroke="white" stroke-width="2" opacity="0.8"/>
+  
+  <!-- Signal waves -->
+  <path d="M 20 32 Q 26 26 32 32 Q 38 38 44 32" stroke="white" stroke-width="2" fill="none" opacity="0.6"/>
+  <path d="M 24 32 Q 28 28 32 32 Q 36 36 40 32" stroke="white" stroke-width="1.5" fill="none" opacity="0.4"/>
+  
+  <!-- Highlight effect -->
+  <circle cx="32" cy="32" r="30" fill="none" stroke="url(#accentGradient)" stroke-width="1" opacity="0.3"/>
+  
+  <!-- Inner glow -->
+  <circle cx="32" cy="32" r="25" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+</svg>
